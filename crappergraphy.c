@@ -36,63 +36,72 @@ int main( int argc, char **argv ) {
     /* Initializing a temporary vector as internal state */
     unsigned int temp[] = 
     {
-        16132817U,12231425U,11314874U,410191439U,
-        410191139U
+        11028137U, 1223014125U, 111420874U, 11914309U,
+        1100139U, 1327301425U, 1513281037U, 187040U
     };
     
     long fsize;
     size_t target_bytes; // The number of blocks to be allocated
 
-    /* Opening the file and taking filesize,*/
+    /* Opening the file and taking filesize */
     FILE *fp = fopen(input_filename, "rb");
-
+    if (fp == NULL) {
+        printf("ERROR: Problem opening file '%s'; quitting.\n",input_filename);
+        return EXIT_FAILURE;
+    }
     fseek(fp, 0, SEEK_END);
     fsize = ftell(fp);
 
-    target_bytes = fsize / sizeof(unsigned int);
-
+    if (fsize == 0) {
+        printf("ERROR: file must be non-empty; quitting.\n");
+        fclose(fp);
+        return EXIT_FAILURE;
+    }
+    target_bytes = ceil(fsize / sizeof(unsigned int));
     /* Declare buffer as the number of n-byte sized blocks 
        to be used as initial storage */
     unsigned int buffer[target_bytes];
 
     /* Return to beginning to read file contents into buffer, then close file */
     fseek(fp, 0, SEEK_SET);
-    fread(buffer, sizeof(unsigned int), target_bytes, fp);
+    fread(&buffer, 1, fsize, fp);
     fclose(fp);
-
     /* The product of buffer XO*/
     unsigned int result[target_bytes];
-
     /* We use 'temp_iter' to specify how many times we want
        to permute the array (0 being 1 time for some reason) a given round.
        It rotates between 0 and the size of temp. */
-    char temp_iter = 0;
-    for (char current_iter = 0; current_iter < 50; ++current_iter) {
-        
-        /* Permute temp "temp_iter" times */
-        permute(sizeof(temp) / sizeof(unsigned int),temp,0,temp_iter,0);
-        if (temp_iter % 4 == 0) {
+    int temp_iter = 0;
+    for (int current_iter = 0; current_iter < 1000; ++current_iter) {
+        if (temp_iter % 63 == 0) {
             temp_iter = 0;
         }
         int input_idx = 0;
         int temp_idx = 0;
-        while (input_idx < target_bytes) {
-            
-            if (temp_idx % 5 == 0) {
+        while (input_idx < target_bytes+1) {
+            /* Permute temp "temp_iter" times */
+            permute(4,&temp[temp_idx], 0,temp_iter, 0);
+            if (temp_idx % 8 == 0) {
                 temp_idx = 0;
             }
             result[input_idx] = (current_iter == 0) ? 
-                buffer[input_idx] ^ temp[temp_idx] : result[temp_idx] ^ temp[temp_idx];
-                
-            ++temp_idx; ++input_idx;
+                buffer[input_idx] ^ temp[temp_idx] : result[input_idx] ^ temp[temp_idx];
+            ++temp_idx; 
+            ++input_idx;
         }
         ++temp_iter;
     }
 
-    /* Write file to output_filename */
+    /* Write contents of 'result' to file specified by output_filename */
     FILE * out_ptr = fopen(output_filename,"wb");
-    fwrite(result,sizeof(unsigned int),target_bytes,out_ptr);
+
+    if (out_ptr == NULL) {
+        printf("ERROR: Problem opening output file '%s'; quitting.\n",output_filename);
+        return EXIT_FAILURE;
+    }
+
+    fwrite(result,1,fsize,out_ptr);
     fclose(out_ptr);
 
-    return 0;
+    return EXIT_SUCCESS;
 }
